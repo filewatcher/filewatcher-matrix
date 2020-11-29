@@ -43,10 +43,14 @@ gem install filewatcher-matrix
   :exclude: '**/{spec/**/*,config/**/*.example*}'
   :command: pumactl restart
 
-- :pattern: '{assets/styles/**/*,postcss.config.js}'
+- :pattern:
+    - assets/styles/**/*
+    - postcss.config.js
   :command: pnpm run build:styles
 
-- :pattern: '{assets/scripts/**/*,rollup.config.js}'
+- :pattern:
+    - assets/scripts/**/*
+    - rollup.config.js
   :command: pnpm run build:scripts
 
 - :pattern: 'package.json'
