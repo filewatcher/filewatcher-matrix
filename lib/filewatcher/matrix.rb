@@ -14,8 +14,8 @@ class Filewatcher
 		def initialize(path)
 			@filewatchers = YAML.load_file(path).map! do |args|
 				{
-					filewatcher: Filewatcher.new(args[:pattern], exclude: args[:exclude]),
-					command: args[:command]
+					filewatcher: Filewatcher.new(args.fetch(:pattern), exclude: args[:exclude]),
+					command: args.fetch(:command)
 				}
 			end
 		end
