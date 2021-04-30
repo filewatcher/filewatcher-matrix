@@ -1,14 +1,23 @@
-bundle_cache: &bundle_cache
+unix_bundle_cache: &unix_bundle_cache
   bundle_cache:
-    folder: /usr/local/bundle
+    folder: vendor/bundle
     fingerprint_script:
       - echo $CIRRUS_OS
       - ruby -v
       - cat Gemfile
       - cat *.gemspec
-  install_script:
-    - gem install bundler
+  bundle_install_script:
+    - bundle config set --local path 'vendor/bundle'
     - bundle update
+
+env:
+  ## To suppress flood of warnings:
+  ## https://github.com/cirruslabs/cirrus-ci-docs/issues/814
+  ## https://github.com/rubygems/rubygems/issues/4466#issuecomment-818688569
+  ## Global for:
+  ## 1. different tasks (rubocop, test, etc.);
+  ## 2. avoiding overriding `env` in specific cases like macOS.
+  TMPDIR: $CIRRUS_WORKING_DIR
 
 remark_task:
   container:
@@ -31,8 +40,14 @@ remark_task:
 bundle-audit_task:
   container:
     image: ruby
-  <<: *bundle_cache
-  bundle-audit_script: bundle audit check --update
+
+  install_script:
+    - gem install bundler
+
+  <<: *unix_bundle_cache
+
+  audit_script: bundle exec bundle-audit check --update
+
   only_if: ($CIRRUS_BRANCH == 'master') ||
     changesInclude(
       '.cirrus.yaml', '.gitignore', 'Gemfile', '*.gemspec'
@@ -41,15 +56,13 @@ bundle-audit_task:
 rubocop_task:
   container:
     image: ruby:latest
-  <<: *bundle_cache
 
-  lint_script: bundle exec rubocop --format=json --out=rubocop.json
+  install_script:
+    - gem install bundler
 
-  always:
-    rubocop_artifacts:
-      path: rubocop.json
-      type: text/json
-      format: rubocop
+  <<: *unix_bundle_cache
+
+  lint_script: bundle exec rubocop
 
   only_if: ($CIRRUS_BRANCH == 'master') ||
     changesInclude(
@@ -57,30 +70,99 @@ rubocop_task:
       '**.rb', '**.ru'
     )
 
-rspec_task:
+test_task:
+  name: Test on $CIRRUS_OS
+
   depends_on:
     - remark
     - bundle-audit
     - rubocop
 
-  container:
-    matrix:
-      image: ruby:2.5
-      image: ruby:2.6
-      image: ruby:2.7
-      image: ruby:3.0
-  <<: *bundle_cache
+  matrix:
+    - container:
+        matrix:
+          image: ruby:2.5
+          image: ruby:2.6
+          image: ruby:2.7
+          image: ruby:3.0
+          image: ruby:3.0
+          image: jruby:latest
+
+      os_prepare_script:
+        - gem install bundler
+
+      <<: *unix_bundle_cache
+
+    - container:
+        image: ghcr.io/graalvm/truffleruby:latest
+
+      os_prepare_script:
+        ## For `gem install`: https://github.com/graalvm/container/issues/9
+        - microdnf install -y glibc-langpack-en
+
+        - gem install bundler
+
+      <<: *unix_bundle_cache
+
+    - macos_instance:
+        image: big-sur-base
+
+      env:
+        PATH: "/usr/local/opt/ruby/bin:$PATH"
+
+      os_prepare_script:
+        ## Brew is pre-installed, as described in the CI docs:
+        ## https://cirrus-ci.org/guide/macOS/#list-of-available-images
+        # - bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        # - brew install ruby
+
+        ## https://github.com/rubygems/rubygems/issues/2058#issuecomment-342347290
+        - gem install bundler --force
+
+      <<: *unix_bundle_cache
+
+    - windows_container:
+        image: cirrusci/windowsservercore:2019
+
+      env:
+        ## It's better to pre-define here instead of `refreshenv`:
+        ## https://cirrus-ci.org/guide/windows/#environment-variables
+        RUBY_PATH: C:\tools\ruby
+        PATH: $RUBY_PATH\bin;$PATH
+
+      ruby_cache:
+        folder: $RUBY_PATH
+        fingerprint_script:
+          - echo $CIRRUS_OS
+          ## `--limit-output` to try rid off extra information and avoid cache miss:
+          ## https://cirrus-ci.com/task/5913496480120832?logs=ruby#L11-L13
+          - choco search --exact "ruby" --limit-output
+        populate_script:
+          ## Cirrus CI has Chocolatey pre-installed 😍:
+          ## https://cirrus-ci.org/guide/windows/#chocolatey
+
+          ## Install the latest Ruby with Chocolatey: https://community.chocolatey.org/packages/ruby
+          ## But I don't know what to do with cache and new versions (`upgrade`?)
+          - choco install ruby -y --no-progress --params "/NoPath /InstallDir:%RUBY_PATH%"
+
+          - gem install bundler
+
+      bundle_cache:
+        folder: vendor\bundle
+        fingerprint_script:
+          - echo %CIRRUS_OS%
+          - ruby -v
+          - type Gemfile
+          - type *.gemspec
+
+      bundle_install_script:
+        - bundle config set --local path 'vendor/bundle'
+        - bundle update
 
   environment:
     CODECOV_TOKEN: ENCRYPTED[41ac44f3192f39911b51ad2dc3df541cc48de0a92ff18367d229498f9983425526a8638fac64260b9e574b7db332ff13]
 
-  test_script: bundle exec rspec --format=json --out=rspec.json
-
-  always:
-    rspec_artifacts:
-      path: rspec.json
-      type: text/json
-      format: rspec
+  test_script: bundle exec rspec
 
   only_if: ($CIRRUS_BRANCH == 'master') ||
     changesInclude(
