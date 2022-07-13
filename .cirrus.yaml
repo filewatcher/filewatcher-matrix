@@ -145,6 +145,16 @@ test_task:
           ## But I don't know what to do with cache and new versions (`upgrade`?)
           - choco install ruby -y --no-progress --params "/NoPath /InstallDir:%RUBY_PATH%"
 
+          ## https://community.chocolatey.org/packages/ruby#notes
+          - choco install msys2 -y --no-progress
+
+          ## ```
+          ## Installing json 2.6.2 with native extensions
+          ## MSYS2 could not be found. Please run 'ridk install'
+          ## or download and install MSYS2 manually from https://msys2.github.io/
+          ## ```
+          - ridk install 3
+
           - gem install bundler
 
       bundle_cache:
