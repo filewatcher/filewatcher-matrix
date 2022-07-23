@@ -129,7 +129,7 @@ test_task:
         ## https://cirrus-ci.org/guide/windows/#environment-variables
         RUBY_PATH: C:\tools\ruby
         MSYS2_PATH: C:\tools\msys2
-        PATH: $RUBY_PATH\bin;$PATH
+        PATH: $MSYS2_PATH;$RUBY_PATH\bin;$PATH
 
       ruby_cache:
         folder: C:\tools
@@ -143,7 +143,7 @@ test_task:
           ## https://cirrus-ci.org/guide/windows/#chocolatey
 
           ## https://community.chocolatey.org/packages/ruby#notes
-          - choco install msys2 -y --no-progress --params "/InstallDir:%MSYS2_PATH%"
+          - choco install msys2 -y --no-progress --params "/NoPath /InstallDir:%MSYS2_PATH%"
 
           ## Install the latest Ruby with Chocolatey: https://community.chocolatey.org/packages/ruby
           ## But I don't know what to do with cache and new versions (`upgrade`?)
