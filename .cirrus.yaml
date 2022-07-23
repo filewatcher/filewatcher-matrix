@@ -128,10 +128,13 @@ test_task:
         ## It's better to pre-define here instead of `refreshenv`:
         ## https://cirrus-ci.org/guide/windows/#environment-variables
         RUBY_PATH: C:\tools\ruby
+        MSYS2_PATH: C:\tools\msys2
         PATH: $RUBY_PATH\bin;$PATH
 
       ruby_cache:
-        folder: $RUBY_PATH
+        folders:
+          - $RUBY_PATH
+          - $MSYS2_PATH
         fingerprint_script:
           - echo $CIRRUS_OS
           ## `--limit-output` to try rid off extra information and avoid cache miss:
@@ -146,7 +149,7 @@ test_task:
           - choco install ruby -y --no-progress --params "/NoPath /InstallDir:%RUBY_PATH%"
 
           ## https://community.chocolatey.org/packages/ruby#notes
-          - choco install msys2 -y --no-progress
+          - choco install msys2 -y --no-progress --params "/InstallDir:%MSYS2_PATH%"
 
           ## ```
           ## Installing json 2.6.2 with native extensions
