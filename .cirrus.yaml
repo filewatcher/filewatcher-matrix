@@ -142,12 +142,12 @@ test_task:
           ## Cirrus CI has Chocolatey pre-installed 😍:
           ## https://cirrus-ci.org/guide/windows/#chocolatey
 
+          ## https://community.chocolatey.org/packages/ruby#notes
+          - choco install msys2 -y --no-progress --params "/InstallDir:%MSYS2_PATH%"
+
           ## Install the latest Ruby with Chocolatey: https://community.chocolatey.org/packages/ruby
           ## But I don't know what to do with cache and new versions (`upgrade`?)
           - choco install ruby -y --no-progress --params "/NoPath /InstallDir:%RUBY_PATH%"
-
-          ## https://community.chocolatey.org/packages/ruby#notes
-          - choco install msys2 -y --no-progress --params "/InstallDir:%MSYS2_PATH%"
 
           ## ```
           ## Installing json 2.6.2 with native extensions
