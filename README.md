@@ -1,10 +1,10 @@
 # Filewatcher Matrix
 
 [![Cirrus CI - Base Branch Build Status](https://img.shields.io/cirrus/github/filewatcher/filewatcher-matrix?style=flat-square)](https://cirrus-ci.com/github/filewatcher/filewatcher-matrix)
-[![Codecov branch](https://img.shields.io/codecov/c/github/filewatcher/filewatcher-matrix/master.svg?style=flat-square)](https://codecov.io/gh/filewatcher/filewatcher-matrix)
+[![Codecov branch](https://img.shields.io/codecov/c/github/filewatcher/filewatcher-matrix/main.svg?style=flat-square)](https://codecov.io/gh/filewatcher/filewatcher-matrix)
 [![Code Climate](https://img.shields.io/codeclimate/maintainability/filewatcher/filewatcher-matrix.svg?style=flat-square)](https://codeclimate.com/github/filewatcher/filewatcher-matrix)
 [![Depfu](https://img.shields.io/depfu/filewatcher/filewatcher-matrix?style=flat-square)](https://depfu.com/repos/github/filewatcher/filewatcher-matrix)
-[![Inline docs](https://inch-ci.org/github/filewatcher/filewatcher-matrix.svg?branch=master)](https://inch-ci.org/github/filewatcher/filewatcher-matrix)
+[![Inline docs](https://inch-ci.org/github/filewatcher/filewatcher-matrix.svg?branch=main)](https://inch-ci.org/github/filewatcher/filewatcher-matrix)
 [![License](https://img.shields.io/github/license/filewatcher/filewatcher-matrix.svg?style=flat-square)](LICENSE.txt)
 [![Gem](https://img.shields.io/gem/v/filewatcher-matrix.svg?style=flat-square)](https://rubygems.org/gems/filewatcher-matrix)
 

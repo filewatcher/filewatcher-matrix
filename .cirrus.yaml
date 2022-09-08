@@ -32,7 +32,7 @@ remark_task:
 
   lint_script: npm run remark
 
-  only_if: ($CIRRUS_BRANCH == 'master') ||
+  only_if: ($CIRRUS_BRANCH == 'main') ||
     changesInclude(
       '.cirrus.yaml', '.gitignore', 'package.json', '.remarkrc.yaml', '**.md'
     )
@@ -48,7 +48,7 @@ bundle-audit_task:
 
   audit_script: bundle exec bundle-audit check --update
 
-  only_if: ($CIRRUS_BRANCH == 'master') ||
+  only_if: ($CIRRUS_BRANCH == 'main') ||
     changesInclude(
       '.cirrus.yaml', '.gitignore', 'Gemfile', '*.gemspec'
     )
@@ -64,7 +64,7 @@ rubocop_task:
 
   lint_script: bundle exec rubocop
 
-  only_if: ($CIRRUS_BRANCH == 'master') ||
+  only_if: ($CIRRUS_BRANCH == 'main') ||
     changesInclude(
       '.cirrus.yaml', '.gitignore', 'Gemfile', '.rubocop.yml', '*.gemspec',
       '**.rb', '**.ru'
@@ -113,7 +113,7 @@ test_task:
       os_prepare_script:
         ## Brew is pre-installed, as described in the CI docs:
         ## https://cirrus-ci.org/guide/macOS/#list-of-available-images
-        # - bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        # - bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/main/install.sh)"
         # - brew install ruby
 
         ## https://github.com/rubygems/rubygems/issues/2058#issuecomment-342347290
@@ -175,7 +175,7 @@ test_task:
 
   test_script: bundle exec rspec
 
-  only_if: ($CIRRUS_BRANCH == 'master') ||
+  only_if: ($CIRRUS_BRANCH == 'main') ||
     changesInclude(
       '.cirrus.yaml', '.gitignore', 'Gemfile', '.rspec', '*.gemspec', 'lib/**',
       'spec/**'

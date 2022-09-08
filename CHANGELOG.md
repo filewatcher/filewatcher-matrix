@@ -1,6 +1,6 @@
 # Changelog
 
-## master (unreleased)
+## Unreleased
 
 ## 0.2.0 (2021-02-11)
 
