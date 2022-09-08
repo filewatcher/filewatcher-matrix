@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.0.0 (2022-09-09)
+
+*   Drop Ruby 2.5 support.
+*   Update dependencies.
+*   Update metadata in gem specification.
+*   Improve CI.
+
 ## 0.2.0 (2021-02-11)
 
 *   Support Ruby 3.
