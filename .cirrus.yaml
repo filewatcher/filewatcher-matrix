@@ -10,7 +10,7 @@ unix_bundle_cache: &unix_bundle_cache
     - bundle config set --local path 'vendor/bundle'
     - bundle update
 
-unix_codecov_uploader_cache: &unix_codecov_uploader_cache
+unix_codecov: &unix_codecov
   codecov_uploader_cache:
     folder: codecov
     fingerprint_script:
@@ -20,10 +20,14 @@ unix_codecov_uploader_cache: &unix_codecov_uploader_cache
       - curl -s https://uploader.codecov.io/latest/${CODECOV_OS}/codecov -o codecov/uploader
       - chmod +x codecov/uploader
 
-unix_codecov: &unix_codecov
-  <<: *unix_codecov_uploader_cache
-
   codecov_script: codecov/uploader
+
+only_if_test_changes: &only_if_test_changes
+  ($CIRRUS_BRANCH == 'main') ||
+  changesInclude(
+    '.cirrus.yaml', '.gitignore', 'Gemfile', '.rspec', '*.gemspec', 'lib/**',
+    'spec/**'
+  )
 
 env:
   ## To suppress flood of warnings:
@@ -85,123 +89,167 @@ rubocop_task:
       '**.rb', '**.ru'
     )
 
-test_task:
-  name: Test on $CIRRUS_OS
+test_mri_task:
+  name: Test on MRI
 
-  matrix:
-    - container:
-        matrix:
-          image: ruby:3.2
-          image: ruby:3.3
-          image: ruby:3.4
-          image: ruby:4.0
-          image: jruby:latest
-          image: ghcr.io/graalvm/truffleruby-community:latest
+  container:
+    matrix:
+      image: ruby:3.2
+      image: ruby:3.3
+      image: ruby:3.4
+      image: ruby:4.0
 
-      env:
-        CODECOV_OS: linux
+  env:
+    CODECOV_OS: linux
 
-      os_prepare_script:
-        - gem install bundler
+  os_prepare_script:
+    - gem update --system --no-document
+    - gem install bundler --no-document
 
-      <<: *unix_bundle_cache
+  <<: *unix_bundle_cache
 
-      test_script: bundle exec rspec
+  test_script: bundle exec rspec
 
-      <<: *unix_codecov
+  <<: *unix_codecov
 
-    - macos_instance:
-        image: ghcr.io/cirruslabs/macos-ventura-base:latest
+test_jruby_task:
+  name: Test on JRuby
 
-      env:
-        PATH: "/usr/local/opt/ruby/bin:$PATH"
-        CODECOV_OS: macos
+  container:
+    image: jruby:latest
 
-      os_prepare_script:
-        ## Brew is pre-installed, as described in the CI docs:
-        ## https://cirrus-ci.org/guide/macOS/#list-of-available-images
-        # - bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/main/install.sh)"
-        # - brew install ruby
+  env:
+    CODECOV_OS: linux
 
-        ## https://github.com/rubygems/rubygems/issues/2058#issuecomment-342347290
-        - gem install bundler --force
-        ## https://github.com/codecov/feedback/issues/141#issuecomment-1797830585
-        - softwareupdate --install-rosetta --agree-to-license
+  os_prepare_script:
+    - apt-get update
+    - apt-get install -y build-essential
+    - gem update --system --no-document
+    - gem install bundler --no-document
 
-      <<: *unix_bundle_cache
+  <<: *unix_bundle_cache
 
-      test_script: bundle exec rspec
+  test_script: bundle exec rspec
 
-      ## https://github.com/codecov/feedback/issues/141#issuecomment-1797830585
-      # <<: *unix_codecov
-      <<: *unix_codecov_uploader_cache
+  <<: *unix_codecov
 
-      codecov_script: arch -x86_64 codecov/uploader
+  only_if: *only_if_test_changes
 
-    - windows_container:
-        image: cirrusci/windowsservercore:2019
+test_truffle_task:
+  name: Test on Truffle Ruby
 
-      env:
-        ## It's better to pre-define here instead of `refreshenv`:
-        ## https://cirrus-ci.org/guide/windows/#environment-variables
-        RUBY_PATH: C:\tools\ruby
-        MSYS2_PATH: C:\tools\msys2
-        PATH: $MSYS2_PATH;$RUBY_PATH\bin;$PATH
-        CIRRUS_SHELL: powershell
+  container:
+    image: ghcr.io/graalvm/truffleruby-community:latest
 
-      ruby_cache:
-        folder: C:\tools
-        fingerprint_script:
-          - echo $Env:CIRRUS_OS
-          ## `--limit-output` to try rid off extra information and avoid cache miss:
-          ## https://cirrus-ci.com/task/5913496480120832?logs=ruby#L11-L13
-          - choco search --exact "ruby" --limit-output
-        populate_script:
-          ## Cirrus CI has Chocolatey pre-installed 😍:
-          ## https://cirrus-ci.org/guide/windows/#chocolatey
+  env:
+    CODECOV_OS: linux
 
-          ## https://community.chocolatey.org/packages/ruby#notes
-          - choco install msys2 -y --no-progress --params "/NoPath /InstallDir:$Env:MSYS2_PATH"
+  os_prepare_script:
+    - gem update --system --no-document
+    - gem install bundler --no-document
 
-          ## Install the latest Ruby with Chocolatey: https://community.chocolatey.org/packages/ruby
-          ## But I don't know what to do with cache and new versions (`upgrade`?)
-          - choco install ruby -y --no-progress --params "/NoPath /InstallDir:$Env:RUBY_PATH"
+  <<: *unix_bundle_cache
 
-          ## ```
-          ## Installing json 2.6.2 with native extensions
-          ## MSYS2 could not be found. Please run 'ridk install'
-          ## or download and install MSYS2 manually from https://msys2.github.io/
-          ## ```
-          - ridk install 3
+  test_script: bundle exec rspec
 
-          - gem install bundler
+  only_if: *only_if_test_changes
 
-      bundle_cache:
-        folder: vendor\bundle
-        fingerprint_script:
-          - echo $Env:CIRRUS_OS
-          - ruby -v
-          - type Gemfile
-          - type *.gemspec
+test_macos_task:
+  name: Test on macOS
 
-      bundle_install_script:
-        - bundle config set --local path 'vendor/bundle'
-        - bundle update
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-runner:sonoma
 
-      test_script: bundle exec rspec
+  env:
+    CODECOV_OS: macos
 
-      codecov_uploader_cache:
-        folder: codecov
-        fingerprint_script:
-          - Invoke-WebRequest -UseBasicParsing -Uri https://uploader.codecov.io/latest/windows/codecov.exe.SHA256SUM
-        populate_script:
-          - mkdir -p codecov
-          - Invoke-WebRequest -UseBasicParsing -Uri https://uploader.codecov.io/latest/windows/codecov.exe -Outfile codecov/uploader.exe
+  ruby_cache:
+    ## `/opt/homebrew/opt/ruby` is a symlink, and Cirrus CI can't cache it properly
+    folder: /opt/homebrew/Cellar/ruby
+    fingerprint_script:
+      - echo $CIRRUS_OS
+      - brew info --json=v2 ruby | jq -r '.formulae[0].versions.stable'
+    populate_script:
+      ## Brew is pre-installed, as described in the CI docs:
+      ## https://cirrus-ci.org/guide/macOS/#list-of-available-images
+      # - bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+      - brew install ruby
 
-      codecov_script: .\codecov\uploader.exe
+      - gem update --system --no-document
+      - gem install bundler --no-document
 
-  only_if: ($CIRRUS_BRANCH == 'main') ||
-    changesInclude(
-      '.cirrus.yaml', '.gitignore', 'Gemfile', '.rspec', '*.gemspec', 'lib/**',
-      'spec/**'
-    )
+  <<: *unix_bundle_cache
+
+  test_script: bundle exec rspec
+
+  <<: *unix_codecov
+
+  only_if: *only_if_test_changes
+
+test_windows_task:
+  name: Test on Windows
+
+  windows_container:
+    image: cirrusci/windowsservercore:2019
+
+  env:
+    ## It's better to pre-define here instead of `refreshenv`:
+    ## https://cirrus-ci.org/guide/windows/#environment-variables
+    RUBY_PATH: C:\tools\ruby
+    MSYS2_PATH: C:\tools\msys2
+    PATH: $MSYS2_PATH;$RUBY_PATH\bin;$PATH
+    CIRRUS_SHELL: powershell
+
+  ruby_cache:
+    folder: C:\tools\ruby
+    fingerprint_script:
+      - echo $Env:CIRRUS_OS
+      ## `--limit-output` to try rid off extra information and avoid cache miss:
+      ## https://cirrus-ci.com/task/5913496480120832?logs=ruby#L11-L13
+      - choco search --exact "ruby" --limit-output
+    populate_script:
+      ## Cirrus CI has Chocolatey pre-installed 😍:
+      ## https://cirrus-ci.org/guide/windows/#chocolatey
+
+      ## https://community.chocolatey.org/packages/ruby#notes
+      - choco install msys2 -y --no-progress --params "/NoPath /InstallDir:$Env:MSYS2_PATH"
+
+      ## Install the latest Ruby with Chocolatey: https://community.chocolatey.org/packages/ruby
+      ## But I don't know what to do with cache and new versions (`upgrade`?)
+      - choco install ruby -y --no-progress --params "/NoPath /InstallDir:$Env:RUBY_PATH"
+
+      ## ```
+      ## Installing json 2.6.2 with native extensions
+      ## MSYS2 could not be found. Please run 'ridk install'
+      ## or download and install MSYS2 manually from https://msys2.github.io/
+      ## ```
+      - ridk install 3
+
+      - gem update --system --no-document
+      - gem install bundler --no-document
+
+  bundle_cache:
+    folder: vendor\bundle
+    fingerprint_script:
+      - echo $Env:CIRRUS_OS
+      - ruby -v
+      - type Gemfile
+      - type *.gemspec
+
+  bundle_install_script:
+    - bundle config set --local path 'vendor/bundle'
+    - bundle update --all
+
+  test_script: bundle exec rspec
+
+  codecov_uploader_cache:
+    folder: codecov
+    fingerprint_script:
+      - Invoke-WebRequest -UseBasicParsing -Uri https://uploader.codecov.io/latest/windows/codecov.exe.SHA256SUM
+    populate_script:
+      - mkdir -p codecov
+      - Invoke-WebRequest -UseBasicParsing -Uri https://uploader.codecov.io/latest/windows/codecov.exe -Outfile codecov/uploader.exe
+
+  codecov_script: .\codecov\uploader.exe
+
+  only_if: *only_if_test_changes
