@@ -32,5 +32,5 @@ Gem::Specification.new do |spec|
 
 	spec.required_ruby_version = '>= 3.0', '< 4'
 
-	spec.add_runtime_dependency 'filewatcher', '~> 2.0'
+	spec.add_dependency 'filewatcher', '~> 2.0'
 end
